@@ -35,6 +35,19 @@ describe('spawn', () => {
     expect(root.state).toEqual('completed');
   });
 
+  it.only('can spawn a new child task with arguments', async () => {
+    function* add(task: Task, one: number, two: number) {
+      return one + two;
+    };
+
+    let root = run(function*(context: Task) {
+      return yield context.spawn(add, 12, 55);
+    });
+    await expect(root).resolves.toEqual(67);
+    expect(root.state).toEqual('completed');
+  });
+
+
   it('halts child when halted', async () => {
     let child: Task<void> | undefined;
     let root = run(function*(context: Task) {

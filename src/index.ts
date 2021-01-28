@@ -6,6 +6,6 @@ export { Task } from './task';
 export { Operation } from './operation';
 export { sleep } from './sleep';
 
-export function run<TOut>(operation?: Operation<TOut>): Task<TOut> {
-  return new Task(operation);
+export function run<TOut, TArgs extends any[] = []>(operation?: Operation<TOut, TArgs>, ...args: TArgs): Task<TOut, TArgs> {
+  return new Task(operation, args);
 }

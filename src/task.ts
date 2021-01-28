@@ -17,7 +17,7 @@ type TaskState = 'running' | 'halting' | 'halted' | 'erroring' | 'errored' | 'co
 
 let COUNTER = 0;
 
-export class Task<TOut = unknown> implements Promise<TOut> {
+export class Task<TOut = any, TArgs extends any[] = []> implements Promise<TOut> {
   public id = ++COUNTER;
 
   private children: Set<Task> = new Set();
@@ -29,7 +29,7 @@ export class Task<TOut = unknown> implements Promise<TOut> {
 
   public state: TaskState = 'running';
 
-  constructor(private operation: Operation<TOut>) {
+  constructor(private operation: Operation<TOut, TArgs>, args: TArgs) {
     if(!operation) {
       this.controller = new PromiseController(new Promise(() => {}));
     } else if(isPromise(operation)) {
@@ -37,7 +37,7 @@ export class Task<TOut = unknown> implements Promise<TOut> {
     } else if(isGenerator(operation)) {
       this.controller = new IteratorController(operation);
     } else if(typeof(operation) === 'function') {
-      this.controller = new IteratorController(operation(this));
+      this.controller = new IteratorController(operation(this, ...args));
     } else {
       throw new Error(`unkown type of operation: ${operation}`);
     }
@@ -103,11 +103,11 @@ export class Task<TOut = unknown> implements Promise<TOut> {
     return this.promise.finally(onfinally);
   }
 
-  spawn<R>(operation?: Operation<R>): Task<R> {
+  spawn<ROut, RArgs extends any[] = []>(operation?: Operation<ROut, RArgs>, ...args: RArgs): Task<ROut, RArgs> {
     if(this.state !== 'running') {
       throw new Error('cannot spawn a child on a task which is not running');
     }
-    let child = new Task(operation);
+    let child = new Task(operation, args);
     child.link(this as Task);
     return child;
   }

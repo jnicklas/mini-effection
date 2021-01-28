@@ -68,6 +68,15 @@ describe('run', () => {
       expect(task).resolves.toEqual(67);
     });
 
+    it('can take arguments', () => {
+      let task = run(function*() {
+        let one: number = yield Promise.resolve(12);
+        let two: number = yield Promise.resolve(55);
+        return one + two;
+      });
+      expect(task).resolves.toEqual(67);
+    });
+
     it('can compose operations', () => {
       let task = run(function*() {
         let one: number = yield createNumber(12);

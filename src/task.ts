@@ -13,7 +13,7 @@ function isGenerator(value: any): value is Iterator<unknown> {
   return value && typeof(value.next) === 'function';
 }
 
-type TaskState = 'running' | 'halting' | 'halted' | 'erroring' | 'errored' | 'completing' | 'completed';
+type TaskState = 'running' | 'waiting' | 'halting' | 'halted' | 'erroring' | 'errored' | 'completing' | 'completed';
 
 let COUNTER = 0;
 
@@ -28,6 +28,7 @@ export class Task<TOut = unknown> implements Promise<TOut> {
   private parent?: Task;
 
   public state: TaskState = 'running';
+  public willBlock = false;
 
   constructor(private operation: Operation<TOut>) {
     if(!operation) {
@@ -56,9 +57,15 @@ export class Task<TOut = unknown> implements Promise<TOut> {
     }));
   }
 
+  private async awaitBlockingChildren() {
+    await Promise.all(Array.from(this.children).filter((c) => c.willBlock))
+  }
+
   private async run(): Promise<TOut> {
     try {
       let result = await Promise.race([this.signal.promise, this.controller]);
+      this.state = 'waiting';
+      await this.awaitBlockingChildren();
       this.state = 'completing';
       await this.haltChildren();
       this.state = 'completed';
@@ -108,6 +115,16 @@ export class Task<TOut = unknown> implements Promise<TOut> {
       throw new Error('cannot spawn a child on a task which is not running');
     }
     let child = new Task(operation);
+    child.link(this as Task);
+    return child;
+  }
+
+  fork<R>(operation?: Operation<R>): Task<R> {
+    if(this.state !== 'running') {
+      throw new Error('cannot fork a child on a task which is not running');
+    }
+    let child = new Task(operation);
+    child.willBlock = true;
     child.link(this as Task);
     return child;
   }

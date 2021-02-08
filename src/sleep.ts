@@ -1,6 +1,6 @@
-import { Operation } from './operation';
+import { operation } from './operation';
 
-export function *sleep(duration: number): Operation<void> {
+export const sleep = operation(function*(task, duration: number) {
   let timeoutId;
   try {
     yield new Promise((resolve) => {
@@ -11,4 +11,4 @@ export function *sleep(duration: number): Operation<void> {
       clearTimeout(timeoutId);
     }
   }
-}
+});

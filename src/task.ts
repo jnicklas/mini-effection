@@ -118,10 +118,20 @@ export class Task<TOut = unknown> implements Promise<TOut> {
   trapError(child: Task, error: Error) {
     this.signal.reject(error);
     this.children.delete(child);
+
+    // the child exit has been handled, but its promise has been rejected
+    // possibly without a listener. Catch the promise and do nothing so it
+    // doesn't cause an unhandled error.
+    child.catch(() => {});
   }
 
   trapHalt(child: Task) {
     this.children.delete(child);
+
+    // the child halt has been handled, but its promise may have been rejected
+    // possibly without a listener. Catch the promise and do nothing so it
+    // doesn't cause an unhandled error.
+    child.catch(() => {});
   }
 
   get [Symbol.toStringTag](): string {
